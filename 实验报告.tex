@@ -114,7 +114,7 @@ M6 → M5 & \texttt{findCompleted} & 只有已完成交易才能评价（REQ-025
 \includegraphics[width=0.66\textwidth]{UML类图-实体.png}
 \caption{领域实体类图}\label{fig:class1}
 \end{figure}
-\todo{逐类说明职责 + 多重度；重点讲三处：\texttt{Goods.activeFlag}（唯一有效预约）、
+\todo{逐类说明职责 + 多重度；重点讲三处：\texttt{Reservation.activeFlag}（唯一有效预约）、
 \texttt{User.phone + Reservation.extraContact}（联系方式不单开实体）、\texttt{Review} 关联预约而非商品。}
 
 \begin{figure}[H]
@@ -266,9 +266,79 @@ M6 → M5 & \texttt{findCompleted} & 只有已完成交易才能评价（REQ-025
 
 \appendix
 \section{数据库表结构}
-\todo{9 张表的关键字段与唯一索引（其中 \texttt{UNIQUE(goods\_id, active\_flag)} 是唯一有效预约的兜底）。}
+
+\todo{用一段话说明：9 张表由类图的 9 个实体直接映射，两个唯一索引分别承担“唯一有效预约”与“幂等”两条硬约束。}
+
+{\footnotesize
+\begin{longtable}{p{2.9cm}p{4.8cm}p{5.0cm}p{2.1cm}}
+\toprule
+表 & 关键字段 & 唯一索引 / 约束 & 对应需求 \\
+\midrule
+\endhead
+\texttt{user} & id, username, password\_hash, phone, role, status, fail\_count, lock\_until, cancelled\_at & uk\_user\_username(username)；uk\_user\_phone(phone) & 001 002 019 031 032 033 \\
+\texttt{sms\_code} & phone, code, purpose, expire\_at, used\_at & uk\_sms(phone, purpose, code) & 031 032 \\
+\texttt{category} & id, name, enabled, sort\_no & uk\_category\_name(name) & 028 029 \\
+\texttt{goods} & id, seller\_id, category\_id, title, description, price, status, reject\_reason, violation\_reason, published\_at, completed\_at & idx\_goods\_query(status, category\_id, price)；idx\_goods\_seller(seller\_id, status) & 003--008 014 016 018 022 027 \\
+\texttt{goods\_image} & id, goods\_id, url, size\_bytes, content\_type, sort\_no & fk\_goods\_image(goods\_id, sort\_no)；≤12 张由 service 校验 & 027 \\
+\texttt{reservation} & id, goods\_id, buyer\_id, status, \textbf{active\_flag}\newline（生成列）, extra\_contact, request\_id, created\_at, confirmed\_at, completed\_at & \textbf{uk\_active\_reservation}\newline (goods\_id, active\_flag)；\newline uk\_reservation\_request\newline (request\_id) & 009--013\newline 020 021\newline 024 030\newline 035 \\
+\texttt{waitlist}\allowbreak\texttt{\_entry} & id, goods\_id, buyer\_id, position, created\_at & uk\_waitlist\_pos(goods\_id, position)；uk\_waitlist\_buyer(goods\_id, buyer\_id) & 030 \\
+\texttt{review} & id, reservation\_id, reviewer\_id, reviewee\_id, score, comment, created\_at & uk\_review(reservation\_id, reviewer\_id) & 025 026 \\
+\texttt{operation\_log} & id, operator\_id, action, target\_type, target\_id, result, fail\_reason, created\_at & idx\_log\_query(operator\_id, action, created\_at) & 017 023 \\
+\bottomrule
+\end{longtable}
+}
+
+\noindent 其中 \texttt{reservation.active\_flag} 由 \texttt{status} 生成：状态属于“待卖家确认 / 已确认”时取 1，其余取 NULL；
+配合 \texttt{UNIQUE(goods\_id, active\_flag)}，同一商品在任一时刻最多只能写入一条有效预约——这是 REQ-012
+“并发下只有一人成功”的最后一道防线，应用层的 \texttt{SELECT ... FOR UPDATE} 只是提前给出可读的失败提示。
 
 \section{需求—模块—界面追溯表}
-\todo{35 条需求 → 模块 → 界面编号的一张表。}
+
+\todo{用一段话说明：35 条需求逐条落到模块与界面/图形，保证“没有需求没被设计覆盖”。}
+
+{\footnotesize
+\begin{longtable}{p{1.55cm}p{4.1cm}p{0.8cm}p{3.85cm}p{4.1cm}}
+\toprule
+编号 & 需求 & 模块 & 界面 / 图形 & 落点说明 \\
+\midrule
+\endhead
+REQ-001 & 普通用户注册与登录 & M1 & 01 登录注册 & 手机号 + 验证码注册 \\
+REQ-002 & 三类角色的操作权限 & M1 & 全站 & 角色拦截器统一校验 \\
+REQ-003 & 保存商品草稿 & M2 & 09 商品编辑 & 草稿仅本人可见 \\
+REQ-004 & 提交审核、通过、驳回、撤回 & M2 & 08 卖家管理、10 审核台 & 驳回必填原因 \\
+REQ-005 & 商品状态与允许的转换 & M2 & 图 5 商品状态图 & 状态机转移表 \\
+REQ-006 & 卖家下架已发布商品 & M2 & 08 卖家管理 & 下架按钮的禁用条件 \\
+REQ-007 & 管理员违规下架 & M2 & 10 审核台 & 违规下架并作废预约 \\
+REQ-008 & 按关键词 / 分类 / 价格 / 状态查询 & M4 & 03 首页列表 & 四条件组合与可见范围 \\
+REQ-009 & 买家发起预约 & M5 & 04 详情、05 预约确认 & 双方联系方式齐备才可预约 \\
+REQ-010 & 确认前取消或拒绝预约 & M5 & 06 买家预约 & 取消 / 拒绝无需对方同意 \\
+REQ-011 & 卖家确认与买家确认完成 & M5 & 06、07、13 & 确认 → 完成两步走 \\
+REQ-012 & 同一商品只有一条有效预约 & M5 & 05 预约确认 & 唯一索引 + 行锁 \\
+REQ-013 & 重复提交与旧页面操作 & M5 & 05 预约确认 & requestId 幂等回放 \\
+REQ-014 & 非法价格拒绝保存 & M7 & 09 商品编辑 & 错误态与提示文案 \\
+REQ-015 & 用户、商品、预约数据一致 & M7 & 附录 A & 唯一索引与外键 \\
+REQ-016 & 按分类与完成情况统计 & M4 & 12 统计与日志 & 无商品分类显示 0 \\
+REQ-017 & 关键操作日志记录与查询 & M7 & 12 统计与日志 & 成功与失败都记 \\
+REQ-018 & 商品查询响应时间 & M4 & 03 首页列表 & 复合索引 idx\_goods\_query \\
+REQ-019 & 密码摘要与连续失败锁定 & M1 & 01 登录注册 & 5 次错误锁 10 分钟 \\
+REQ-020 & 预约与状态变更的原子性 & M7 & 图 10 时序图（一） & 同一事务提交 \\
+REQ-021 & 确认后取消与完成的锁定 & M5 & 06 买家预约 & 确认后仅卖家可取消 \\
+REQ-022 & 已发布商品修改后重新审核 & M2 & 08、09 & 有预约时禁止修改 \\
+REQ-023 & 操作日志保留期限 & M7 & 12 统计与日志 & 2027-02-01 前不清理 \\
+REQ-024 & 预约成功后的联系方式展示 & M5 & 04、06、07 & 可见性实时判定 \\
+REQ-025 & 交易完成后双方互评 & M6 & 13 交易完成与评价 & 每笔每方一次 \\
+REQ-026 & 用户综合评分展示 & M6 & 03、04、13 & 无评价显示“暂无评价” \\
+REQ-027 & 图片数量、大小与格式 & M2 & 09 商品编辑 & 12 张 / 5MB / jpg 或 png \\
+REQ-028 & 管理员维护商品分类 & M3 & 11 分类管理 & 只能停用不能删除 \\
+REQ-029 & 调整分类后的审核与锁定 & M3 & 11 分类管理 & 改分类视同内容变更 \\
+REQ-030 & 候补队列与自动递补 & M5 & 06、07 & 顺位唯一且连续 \\
+REQ-031 & 手机号注册与验证 & M1 & 01 登录注册 & 一号一账号 \\
+REQ-032 & 修改注册手机号 & M1 & 02 个人中心 & 新旧号双验证 \\
+REQ-033 & 账号注销与数据可见性 & M1 & 02 个人中心 & 有未完成交易时拒绝 \\
+REQ-034 & 预约主流程步骤数与易用性 & M5 & 05 预约确认 & 5 步 / 4 次操作 / 1 必填 \\
+REQ-035 & 卖家取消后商品回到已发布 & M5 & 07 卖家预约 & 有候补时自动递补 \\
+\bottomrule
+\end{longtable}
+}
 
 \end{document}

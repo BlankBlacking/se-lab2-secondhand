@@ -1,4 +1,4 @@
-# 二手交易系统 · 实验二 软件设计与建模
+﻿# 二手交易系统 · 实验二 软件设计与建模
 
 校园二手交易系统的设计与建模成果（南京大学《软件工程》课程实验二）。
 
@@ -16,8 +16,10 @@
 
 1. **状态机集中化**：商品 7 态、预约 7 态的合法转换由 `GoodsStateMachine` / `ReservationStateMachine`
    用转移表实现，非法转换直接拒绝且不改状态（REQ-005、REQ-030）。
-2. **有效预约唯一靠数据库兜底**：`Goods.activeFlag` 为生成列，`UNIQUE(goods_id, active_flag)`
-   保证同一商品最多一条有效预约；应用层再用 `SELECT ... FOR UPDATE` 先锁后判（REQ-012、REQ-020）。
+2. **有效预约唯一靠数据库兜底**：`Reservation.active_flag` 为生成列
+   （`status` 属于“待卖家确认 / 已确认”时取 1，其余为 NULL），
+   `UNIQUE(goods_id, active_flag)` 保证同一商品最多一条有效预约；
+   应用层再用 `SELECT ... FOR UPDATE` 先锁后判（REQ-012、REQ-020）。
 3. **事务与日志分离**：预约与商品状态在同一事务内提交；操作日志走独立事务（`REQUIRES_NEW`），
    业务失败也留痕（REQ-017、REQ-020）。
 

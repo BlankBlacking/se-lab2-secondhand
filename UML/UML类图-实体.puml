@@ -36,7 +36,6 @@ class "商品 Goods" as Goods {
   - status : GoodsStatus
   - rejectReason : String
   - violationReason : String
-  - activeFlag : Integer {生成列}
   - completedAt : DateTime
 }
 
@@ -54,6 +53,7 @@ class "预约 Reservation" as Reservation {
   - goodsId : Long
   - buyerId : Long
   - status : ReservationStatus
+  - activeFlag : Integer {生成列}
   - extraContact : String
   - requestId : String {unique}
   - createdAt : DateTime
@@ -111,7 +111,7 @@ SmsCode ..> User : 校验手机号
 legend right
   【三处必须看懂的约束】
   1. 有效预约 = 待卖家确认 ∪ 已确认。
-     Goods.activeFlag 为生成列（有效 → 1，其余 → NULL），
+     Reservation.activeFlag 为生成列（有效 → 1，其余 → NULL），
      UNIQUE(goods_id, active_flag) ⇒ 同一商品最多一条有效预约（REQ-012）。
      因此 Goods 与 Reservation 的“有效”关联是 0..1，历史关联是 0..*。
   2. 联系方式 = User.phone（注册手机号，默认）
