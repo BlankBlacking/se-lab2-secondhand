@@ -6,4 +6,6 @@
 *.toc
 *.error.png
 UI界面/_html/
-
+*.lof
+*.lot
+*.synctex.gz
