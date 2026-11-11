@@ -1,0 +1,124 @@
+@startuml
+title 图 2.3a 类图（一）：领域实体与关系
+skinparam defaultFontName "Microsoft YaHei"
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 40
+skinparam ranksep 45
+skinparam classFontStyle bold
+top to bottom direction
+
+class "用户 User" as User {
+  - id : Long
+  - username : String {unique}
+  - passwordHash : String
+  - phone : String {unique}
+  - role : Role
+  - status : UserStatus
+  - failCount : int
+  - lockUntil : DateTime
+  - cancelledAt : DateTime
+}
+
+class "分类 Category" as Category {
+  - id : Long
+  - name : String
+  - enabled : boolean
+  - sortNo : int
+}
+
+class "商品 Goods" as Goods {
+  - id : Long
+  - sellerId : Long
+  - categoryId : Long
+  - title : String
+  - description : String
+  - status : GoodsStatus
+  - rejectReason : String
+  - violationReason : String
+  - activeFlag : Integer {生成列}
+  - completedAt : DateTime
+}
+
+class "商品图片 GoodsImage" as GoodsImage {
+  - id : Long
+  - goodsId : Long
+  - url : String
+  - sizeBytes : long
+  - contentType : String
+  - sortNo : int
+}
+
+class "预约 Reservation" as Reservation {
+  - id : Long
+  - goodsId : Long
+  - buyerId : Long
+  - status : ReservationStatus
+  - extraContact : String
+  - requestId : String {unique}
+  - createdAt : DateTime
+  - confirmedAt : DateTime
+  - completedAt : DateTime
+}
+
+class "候补 WaitlistEntry" as WaitlistEntry {
+  - id : Long
+  - goodsId : Long
+  - buyerId : Long
+  - position : int {unique}
+  - createdAt : DateTime
+}
+
+class "评价 Review" as Review {
+  - id : Long
+  - reservationId : Long
+  - reviewerId : Long
+  - revieweeId : Long
+  - score : int
+  - comment : String
+}
+
+class "操作日志 OperationLog" as OperationLog {
+  - id : Long
+  - operatorId : Long
+  - action : LogAction
+  - targetType : String
+  - targetId : Long
+  - result : boolean
+  - failReason : String
+  - createdAt : DateTime
+}
+
+class "短信验证码 SmsCode" as SmsCode {
+  - phone : String
+  - code : String
+  - purpose : CodePurpose
+  - expireAt : DateTime
+  - usedAt : DateTime
+}
+
+User "1" -- "0..*" Goods : 发布
+Category "1" -- "0..*" Goods : 归类
+User "1" -- "0..*" Reservation : 发起
+Goods "1" -- "0..12" GoodsImage : 关联图片
+Goods "1" -- "0..*" Reservation : 被预约
+Goods "1" -- "0..*" WaitlistEntry : 排队
+Reservation "1" -- "0..2" Review : 双方各一条
+
+OperationLog ..> User : 记录操作者
+SmsCode ..> User : 校验手机号
+
+legend right
+  【三处必须看懂的约束】
+  1. 有效预约 = 待卖家确认 ∪ 已确认。
+     Goods.activeFlag 为生成列（有效 → 1，其余 → NULL），
+     UNIQUE(goods_id, active_flag) ⇒ 同一商品最多一条有效预约（REQ-012）。
+     因此 Goods 与 Reservation 的“有效”关联是 0..1，历史关联是 0..*。
+  2. 联系方式 = User.phone（注册手机号，默认）
+               + Reservation.extraContact（预约时另填）。
+     不新开实体，可见性由 ContactService 实时判定（REQ-024）。
+  3. Review 关联 Reservation 而非 Goods：
+     需求口径是“每一笔已完成交易双方各评价一次”（REQ-025、REQ-015）。
+  4. Goods.price 在库中为 DECIMAL(10,2)，且必须 > 0（REQ-014）。
+endlegend
+@enduml

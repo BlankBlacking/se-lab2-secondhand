@@ -1,0 +1,66 @@
+@startuml
+title 图 2.6 活动图：商品从草稿到交易完成的主流程（含驳回与候补分支）
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam ActivityDiamondBackgroundColor #FFF7E6
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam conditionStyle inside
+skinparam swimlaneWidth 200
+
+|卖家|
+start
+:保存草稿\n（标题 / 分类 / 描述 / 价格 / 图片）;
+:提交审核;
+|管理员|
+if (审核通过？) then (通过)
+  :置为“已发布”;
+else (驳回)
+  :填写驳回原因;
+  |卖家|
+  :回到“草稿”，保留驳回原因;
+  stop
+endif
+
+|买家|
+:按关键词 / 分类 / 价格 / 状态查询;
+:查看商品详情;
+if (商品已有有效预约？) then (是)
+  :加入候补队列;
+  :查看自己的顺位\n（前序预约失效时由系统按顺位自动递补）;
+  stop
+else (否)
+  :点击“预约”并填写联系方式;
+endif
+
+|系统|
+if (双方均已填手机号 且 商品为已发布？) then (是)
+  :同一事务内\n写预约 + 商品置“已预约”;
+  :向买卖双方展示对方联系方式;
+else (否)
+  :返回失败原因，商品状态不变;
+  stop
+endif
+
+|卖家|
+:确认预约（或拒绝）;
+|买家|
+:线下交付后确认交易完成;
+|系统|
+:商品与预约同时进入完成状态;
+
+|买家|
+:评价卖家（1–5 分）;
+|卖家|
+:评价买家（1–5 分）;
+|系统|
+:按全部已收评分重算综合评分;
+stop
+
+legend bottom
+  【两条贯穿全程的旁路（未画进主流程，避免图面交叉）】
+  · 违规下架：管理员可对“已发布 / 已预约”商品做违规下架（REQ-007），
+    该商品的有效预约同时作废，候补队列整体失效（REQ-030）。
+  · 卖家下架：仅“已发布且无有效预约”可下架（REQ-006）；
+    “已预约”状态卖家不能下架，只能走取消预约。
+endlegend
+@enduml

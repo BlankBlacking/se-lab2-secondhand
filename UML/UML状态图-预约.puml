@@ -1,0 +1,40 @@
+﻿@startuml
+title 图 2.4b 状态图（二）：预约 Reservation 的 7 个状态
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam stateBackgroundColor #FFFFFF
+skinparam ArrowColor #333333
+hide empty description
+top to bottom direction
+
+[*] --> 待卖家确认 : 买家发起预约\n（该商品当前无有效预约）
+[*] --> 候补中 : 加入候补\n（该商品已有有效预约）
+候补中 --> 待卖家确认 : 前序预约失效\n按顺位自动递补
+候补中 --> 已作废 : 商品下架 / 违规下架 / 交易完成
+待卖家确认 --> 已确认 : 卖家确认
+待卖家确认 --> 已拒绝 : 卖家拒绝
+待卖家确认 --> 已取消 : 买家取消
+待卖家确认 --> 已作废 : 管理员违规下架
+已确认 --> 已完成 : 买家确认交易完成
+已确认 --> 已取消 : 卖家取消（此后商品回到已发布）
+已确认 --> 已作废 : 管理员违规下架
+
+已完成 --> [*]
+已取消 --> [*]
+已拒绝 --> [*]
+已作废 --> [*]
+
+note right of 候补中
+  顺位唯一且连续；
+  同一买家对同一商品
+  最多一条待处理候补（REQ-030）
+end note
+note bottom of 已确认
+  卖家确认后买家不能单方取消，
+  只有卖家能取消（REQ-021）
+end note
+note left of 已完成
+  终态：双方都不能再
+  改变交易或预约状态（REQ-021）
+end note
+@enduml

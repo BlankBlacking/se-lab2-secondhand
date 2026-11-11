@@ -1,0 +1,42 @@
+﻿@startuml
+title 图 2.7b 时序图（二）：卖家取消预约 → 候补自动递补（事务边界）
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign left
+
+actor "卖家" as S
+actor "候补者 C\n（顺位 1）" as C
+participant "预约模块\nReservationService" as RS
+participant "联系方式\nContactService" as CS
+participant "商品模块\nGoodsService" as GS
+database "MySQL 8" as DB
+
+S -> RS : POST /api/reservations/{id}/cancel
+RS -> DB : BEGIN
+RS -> DB : SELECT * FROM goods\nWHERE id = ? FOR UPDATE
+RS -> DB : UPDATE reservation SET status = 已取消
+RS -> CS : 关闭该预约双方的联系方式可见性
+CS --> S : 对方联系方式立即不可见（实时判定）
+
+alt 候补队列非空
+  RS -> DB : 取 position = 1 的候补记录
+  RS -> DB : 候补记录 → 待卖家确认（升为有效预约）
+  RS -> DB : 其余候补顺位整体前移 1
+  RS -> DB : goods.status 保持「已预约」
+  RS --> S : 有新的预约待你确认
+  RS --> C : 你的候补已递补，等待卖家确认
+else 候补队列为空
+  RS -> GS : release(goodsId)
+  GS -> DB : UPDATE goods SET status = 已发布
+  RS --> S : 商品回到「已发布」，可再次被预约
+end
+
+RS -> DB : INSERT operation_log(result = 成功)\n（独立事务 REQUIRES_NEW）
+RS -> DB : COMMIT
+
+note over RS, DB
+  预约状态、商品状态、候补顺位在同一事务内提交，
+  不会出现“预约已取消但商品仍是已预约”（REQ-020）；
+  日志用独立事务，业务回滚也要留痕（REQ-017）。
+end note
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+title 图 2.1 二手交易系统组件图
+skinparam defaultFontName "Microsoft YaHei"
+skinparam componentStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 26
+skinparam ranksep 60
+left to right direction
+
+actor "访客 / 买家 / 卖家 / 管理员" as U
+component "用户端 H5 / 管理端 Web" as UI
+
+component "M1 账号与权限\nAccountModule" as M1
+component "M2 商品与审核\nGoodsModule" as M2
+component "M3 分类\nCategoryModule" as M3
+component "M4 查询与统计\nSearchModule" as M4
+component "M5 预约与候补\nReservationModule" as M5
+component "M6 交易与评价\nReviewModule" as M6
+component "M7 数据与日志\nPlatformModule" as M7
+
+database "MySQL 8" as DB
+node "本地文件存储" as FS
+node "短信网关（Mock）" as SMS
+
+U --> UI
+UI --> M1 : 登录注册
+UI --> M4 : 浏览查询
+UI --> M2 : 商品管理
+UI --> M5 : 预约候补
+UI --> M6 : 评价
+M4 --> M2 : 只读查询
+M2 --> M3 : 分类校验
+M3 ..> M2 : 改分类/回待审核
+M5 --> M2 : markReserved / release
+M5 --> M1 : 联系方式校验
+M6 --> M5 : 查已完成交易
+M6 --> M1 : 重算综合评分
+M1 --> M7
+M2 --> M7
+M5 --> M7
+M7 --> DB
+M2 --> FS : 图片
+M1 --> SMS : 验证码
+@enduml

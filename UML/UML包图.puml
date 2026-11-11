@@ -1,0 +1,70 @@
+@startuml
+title 图 2.2 二手交易系统包图
+skinparam defaultFontName "Microsoft YaHei"
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 30
+skinparam ranksep 45
+left to right direction
+
+package "前端 src" {
+  package "views/user\n用户端 H5 页面" {
+  }
+  package "views/admin\n管理端桌面页面" {
+  }
+  package "api\n接口封装 / 统一错误处理" {
+  }
+  package "store\n登录态 / 当前角色" {
+  }
+  package "components\n商品卡 / 状态徽标 / 空态" {
+  }
+  package "styles\n设计令牌（色板 / 栅格）" {
+  }
+}
+
+package "后端 com.example.secondhand" {
+  package "controller\nREST 接口、参数校验、角色拦截" {
+  }
+  package "service\n业务编排、事务边界、状态机调用" {
+  }
+  package "domain\n实体 / 状态机 / 枚举 / 领域异常" {
+  }
+  package "mapper\nMyBatis-Plus 数据访问与唯一索引" {
+  }
+  package "common\n统一响应、异常处理、日志切面" {
+  }
+  package "config\n安全配置、文件存储、定时任务" {
+  }
+}
+
+database "MySQL 8\n9 张表 + 唯一索引" as DB
+folder "本地图片目录\n/data/uploads" as FS
+
+"views/user\n用户端 H5 页面" ..> "api\n接口封装 / 统一错误处理"
+"views/admin\n管理端桌面页面" ..> "api\n接口封装 / 统一错误处理"
+"views/user\n用户端 H5 页面" ..> "components\n商品卡 / 状态徽标 / 空态"
+"views/admin\n管理端桌面页面" ..> "components\n商品卡 / 状态徽标 / 空态"
+"views/user\n用户端 H5 页面" ..> "store\n登录态 / 当前角色"
+"views/admin\n管理端桌面页面" ..> "store\n登录态 / 当前角色"
+"components\n商品卡 / 状态徽标 / 空态" ..> "styles\n设计令牌（色板 / 栅格）"
+
+"api\n接口封装 / 统一错误处理" ..> "controller\nREST 接口、参数校验、角色拦截" : HTTP / JSON
+"controller\nREST 接口、参数校验、角色拦截" ..> "service\n业务编排、事务边界、状态机调用"
+"controller\nREST 接口、参数校验、角色拦截" ..> "common\n统一响应、异常处理、日志切面"
+"service\n业务编排、事务边界、状态机调用" ..> "domain\n实体 / 状态机 / 枚举 / 领域异常"
+"service\n业务编排、事务边界、状态机调用" ..> "mapper\nMyBatis-Plus 数据访问与唯一索引"
+"service\n业务编排、事务边界、状态机调用" ..> "common\n统一响应、异常处理、日志切面"
+"mapper\nMyBatis-Plus 数据访问与唯一索引" ..> DB
+"config\n安全配置、文件存储、定时任务" ..> "service\n业务编排、事务边界、状态机调用"
+"config\n安全配置、文件存储、定时任务" ..> FS
+
+legend right
+  【分层约定（实验三按此建工程）】
+  · 只有 service 层开 @Transactional；controller 不写业务规则。
+  · domain 层不依赖 Spring，状态机可在单元测试里直接跑。
+  · 唯一索引只写在 mapper 对应的表结构里，
+    不在业务代码里“先查一遍再插”。
+  · 用户端与管理端共用同一套 controller，
+    靠角色拦截器区分权限（REQ-002）。
+endlegend
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+title 图 2.4a 状态图（一）：商品 Goods 的 7 个状态
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam stateBackgroundColor #FFFFFF
+skinparam ArrowColor #333333
+skinparam ArrowFontSize 12
+skinparam nodesep 55
+skinparam ranksep 60
+hide empty description
+
+[*] --> 草稿 : 卖家新建
+草稿 --> 待审核 : 提交
+待审核 --> 草稿 : 驳回
+待审核 --> 草稿 : 撤回
+待审核 --> 已发布 : 通过
+已发布 --> 已预约 : 买家预约
+已发布 --> 已下架 : 卖家下架
+已发布 --> 待审核 : 修改内容
+已发布 --> 违规下架 : 管理员违规下架
+已预约 --> 已发布 : 预约失效
+已预约 --> 交易完成 : 买家确认完成
+已预约 --> 违规下架 : 管理员违规下架
+
+交易完成 --> [*]
+已下架 --> [*]
+违规下架 --> [*]
+
+note right of 待审核
+  待审核期间不能改内容，只能撤回；
+  驳回必须填写原因，商品回到草稿（REQ-004）
+end note
+note bottom of 已发布
+  有有效预约时禁止改价 / 改描述 / 改图（REQ-022）；
+  修改内容后重新审核；管理员调整分类也回到待审核（REQ-029）；
+  卖家下架仅限“无有效预约”（REQ-006）
+end note
+note bottom of 已预约
+  预约失效 = 取消 / 拒绝 / 作废，
+  此时商品回到已发布（REQ-035）
+end note
+note right of 交易完成
+  终态：不能再被预约，
+  也不能改回已发布（REQ-005）
+end note
+note right of 违规下架
+  违规下架同时作废有效预约，
+  候补队列整体失效（REQ-007 / REQ-030）
+end note
+@enduml

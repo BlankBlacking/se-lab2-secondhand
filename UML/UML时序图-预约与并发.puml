@@ -1,0 +1,47 @@
+﻿@startuml
+title 图 2.7a 时序图（一）：买家预约（含并发竞争与幂等回放）
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign left
+
+actor "买家 A" as BA
+actor "买家 B\n（同一时刻提交）" as BB
+participant "预约模块\nReservationService" as RS
+participant "幂等表\nIdempotencyService" as ID
+participant "账号模块\nAuthService" as AS
+participant "商品模块\nGoodsService" as GS
+database "MySQL 8" as DB
+
+BA -> RS : POST /api/reservations\n{goodsId, contact, requestId}
+RS -> ID : tryBegin(requestId)
+ID --> RS : 首次请求（未重放）
+RS -> AS : 买卖双方是否已填手机号？
+AS --> RS : 均已填写
+
+RS -> DB : SELECT * FROM goods\nWHERE id = ? FOR UPDATE
+RS -> DB : 查询该商品的有效预约
+
+alt 商品为「已发布」且无有效预约
+  RS -> DB : INSERT reservation(status = 待卖家确认)
+  RS -> GS : markReserved(goodsId)
+  GS -> DB : UPDATE goods SET status = 已预约
+  RS -> DB : INSERT operation_log(result = 成功)
+  RS --> BA : 201 预约成功 + 卖家联系方式可见
+else 商品已被预约
+  RS -> DB : INSERT waitlist(position = 队列末尾 + 1)
+  RS --> BA : 409 已被预约，已加入候补（顺位 N）
+end
+
+== 并发：买家 B 同时提交 ==
+BB -> RS : POST /api/reservations
+RS -> DB : SELECT ... FOR UPDATE（等待 A 释放行锁）
+DB --> RS : 读到商品已是「已预约」
+RS --> BB : 409 该商品已被预约
+
+note over DB
+  UNIQUE(goods_id, active_flag) 兜底：
+  即使两个请求都越过应用层校验，
+  也只有一条有效预约能写入（REQ-012）。
+  同一 requestId 重放时回放首次结果快照，不新增预约（REQ-013）。
+end note
+@enduml

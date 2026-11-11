@@ -1,0 +1,38 @@
+@startuml
+title 图 2.8 二手交易系统部署图
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 40
+skinparam ranksep 55
+top to bottom direction
+
+node "用户设备" as UD {
+  node "浏览器\n用户端 H5（390×844）" as B1
+  node "浏览器\n管理端 Web（1440×900）" as B2
+}
+
+node "应用服务器　2C4G / Linux" as APP {
+  artifact "Nginx\n静态资源 + 反向代理" as NGX
+  artifact "Spring Boot 3 单体应用\nJava 17 / 内嵌 Tomcat" as BOOT
+  folder "本地图片目录\n/data/uploads" as FS
+}
+
+database "MySQL 8\n9 张表 + 唯一索引" as DB
+node "短信网关\nMock / 阿里云 SMS" as SMS
+
+B1 --> NGX : HTTPS :443
+B2 --> NGX : HTTPS :443
+NGX --> BOOT : HTTP :8080
+BOOT --> DB : JDBC :3306
+BOOT --> FS : 本地文件读写
+BOOT --> SMS : HTTPS 短信 API
+
+note bottom of BOOT
+  · REQ-018 性能落点：商品查询走复合索引
+    idx_goods(status, category_id, price)
+  · REQ-023 日志落点：operation_log 与业务同库，
+    2027-02-01 前不做清理 / 归档
+  · 图片规则：单张 ≤5MB、jpg|png、每件 ≤12 张（REQ-027），
+    落盘前由 service 层校验，不依赖前端
+end note
+@enduml

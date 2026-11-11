@@ -1,0 +1,103 @@
+@startuml
+title 图 2.5 用例图：三类角色与七个业务模块
+skinparam defaultFontName "Microsoft YaHei"
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam nodesep 20
+skinparam ranksep 38
+left to right direction
+
+actor "访客" as Guest
+actor "普通用户\n（买家 / 卖家\n同一账号）" as User
+actor "管理员" as Admin
+
+package "账号与权限" {
+  usecase "注册（手机号 + 验证码）" as UC01
+  usecase "登录" as UC02
+  usecase "修改注册手机号" as UC03
+  usecase "注销账号" as UC04
+}
+
+package "查询与统计" {
+  usecase "按关键词 / 分类 / 价格 / 状态查询" as UC05
+  usecase "查看用户综合评分" as UC06
+  usecase "查看分类统计" as UC07
+}
+
+package "预约与候补" {
+  usecase "发起预约" as UC08
+  usecase "加入候补并查看顺位" as UC09
+  usecase "取消预约" as UC10
+  usecase "确认预约 / 拒绝预约" as UC11
+  usecase "确认交易完成" as UC12
+  usecase "查看对方联系方式" as UC13
+}
+
+package "交易与评价" {
+  usecase "评价对方（1–5 分）" as UC14
+}
+
+package "商品与审核（卖家侧）" {
+  usecase "保存商品草稿" as UC15
+  usecase "提交审核" as UC16
+  usecase "撤回待审核" as UC17
+  usecase "下架已发布商品" as UC18
+  usecase "修改已发布商品（重新审核）" as UC19
+}
+
+package "审核与处置（管理员侧）" {
+  usecase "审核通过 / 驳回（必填原因）" as UC20
+  usecase "违规下架（预约同时作废）" as UC21
+}
+
+package "分类与日志（管理员侧）" {
+  usecase "维护分类（新增 / 改名 / 停用）" as UC22
+  usecase "调整商品分类" as UC23
+  usecase "查询全站操作日志" as UC24
+}
+
+Guest --> UC01
+Guest --> UC02
+Guest --> UC05
+Guest --> UC06
+
+User --> UC02
+User --> UC03
+User --> UC04
+User --> UC05
+User --> UC08
+User --> UC09
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC06
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+
+Admin --> UC02
+Admin --> UC07
+Admin --> UC20
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+Admin --> UC24
+
+UC08 ..> UC02 : <<include>>
+UC09 ..> UC08 : <<extend>>\n商品已有有效预约时
+
+legend right
+  【图例与依据】
+  · 买家、卖家是同一普通账号的两种身份（REQ-001），
+    因此合并为一个参与者；两者的差异是“前置条件”而不是两套用例：
+    买家不能预约自己发布的商品、卖家不能代替买家确认完成（REQ-002）。
+  · 访客不登录即可查看已发布商品与综合评分（REQ-002）。
+  · <<extend>>：商品已被预约时，“发起预约”变为“加入候补”（REQ-030）。
+  · 管理员没有“修改商品描述 / 价格”用例——需求明确禁止（REQ-002）。
+  · 管理员审核与卖家提交分属两个用例包，因为权限边界不同（REQ-004）。
+endlegend
+@enduml

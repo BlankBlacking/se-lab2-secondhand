@@ -1,0 +1,9 @@
+﻿# 构建与临时文件
+.build/
+*.aux
+*.log
+*.out
+*.toc
+*.error.png
+UI界面/_html/
+

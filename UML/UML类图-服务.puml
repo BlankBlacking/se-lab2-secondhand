@@ -1,0 +1,99 @@
+@startuml
+title 图 2.3b 类图（二）：领域服务与状态机
+skinparam defaultFontName "Microsoft YaHei"
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam classFontStyle bold
+top to bottom direction
+
+package "接口层（Controller）" {
+  class "商品与审核接口\nGoodsController" as GoodsC {
+    + saveDraft() : Result
+    + submit(id) : Result
+    + approve(id) : Result
+    + reject(id, reason) : Result
+  }
+  class "预约接口\nReservationController" as ResC {
+    + reserve() : Result
+    + cancel(id) : Result
+    + confirm(id) : Result
+    + complete(id) : Result
+  }
+}
+
+package "领域服务（事务边界在此层）" {
+  class "账号服务\nAuthService" as Auth {
+    + register() : User
+    + login() : Token
+    + sendCode() : void
+    + changePhone() : void
+    + cancelAccount() : void
+  }
+  class "商品服务\nGoodsService" as GoodsS {
+    + saveDraft() : Goods
+    + submit() : void
+    + approve() : void
+    + reject(reason) : void
+    + offShelf() : void
+    + violate(reason) : void
+    + modify() : void
+  }
+  class "预约服务\nReservationService" as ResS {
+    + reserve() : Reservation
+    + cancel() : void
+    + refuse() : void
+    + confirm() : void
+    + complete() : void
+    + promoteFromWaitlist() : Reservation
+  }
+  class "联系方式服务\nContactService" as ContactS {
+    + canView(userId, resId) : boolean
+  }
+  class "评价服务\nReviewService" as ReviewS {
+    + review() : Review
+    + recalcCredit(userId) : BigDecimal
+  }
+  class "日志服务\nLogService" as LogS {
+    + record(action, result) : void
+  }
+  class "幂等服务\nIdempotencyService" as IdemS {
+    + tryBegin(requestId) : Snapshot
+  }
+}
+
+package "状态机（转移表源于 REQ-005 / REQ-030）" {
+  class "商品状态机\nGoodsStateMachine" as GoodsSM {
+    + canTransit(from, action) : boolean
+    + next(from, action) : GoodsStatus
+  }
+  class "预约状态机\nReservationStateMachine" as ResSM {
+    + canTransit(from, action) : boolean
+    + next(from, action) : ReservationStatus
+    + isActive(status) : boolean
+  }
+}
+
+GoodsC ..> GoodsS
+ResC ..> ResS
+GoodsS ..> GoodsSM : 校验并计算下一状态
+ResS ..> ResSM : 校验并计算下一状态
+ResS ..> GoodsS : markReserved / release
+ResS ..> ContactS : 可见性校验
+ResS ..> IdemS : 防重复提交
+ResS ..> LogS : 记成功/失败
+ReviewS ..> ResS : 查已完成交易
+ReviewS ..> Auth : 重算综合评分
+
+note right of ResS
+  唯一把商品状态、预约状态、候补顺位
+  写在同一事务里的类（REQ-020）。
+  失败时整体回滚，日志走独立事务（REQ-017）。
+end note
+note bottom of GoodsSM
+  状态机只做“能不能转 + 转到哪”，
+  不碰数据库，因此可以直接对着
+  实验一的状态转换表写单元测试（REQ-005）。
+end note
+@enduml
