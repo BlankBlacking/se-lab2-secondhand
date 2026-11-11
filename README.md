@@ -30,7 +30,9 @@
 ├── 实验报告.pdf      报告（21 页；正文待填处用灰色〔待写〕标出）
 ├── 实验报告.tex      报告 LaTeX 源（xelatex 编译）
 ├── UML/             PlantUML 源码（.puml）与渲染结果（.png），共 11 张图
-├── UI界面/           界面设计稿 13 屏（用户端 H5 9 屏 + 管理端 3 屏 + 评价 1 屏）
+├── UI界面/           界面设计稿 13 屏（由 PowerPoint 绘制并导出，用户端 H5 10 屏 + 管理端 3 屏）
+├── 界面设计稿-用户端.pptx / -管理端.pptx   PowerPoint 可编辑源文件
+
 ├── UI设计规格.md     设计令牌、组件规格与逐屏说明（重绘设计稿时对照）
 ├── docs/            实验二执行计划
 └── tools/           puml2png.mjs：.puml → .png 渲染脚本
@@ -61,9 +63,12 @@ node tools/puml2png.mjs UML
 xelatex 实验报告.tex && xelatex 实验报告.tex
 ```
 
-界面稿由 HTML+CSS 原型渲染（`--headless` Chrome），像素级参照稿；
-正式设计稿请按 `UI设计规格.md` 在设计工具中 1:1 重绘后替换 `UI界面/` 下的同名 PNG。
+界面稿全部用 Microsoft PowerPoint 绘制（原生形状 + 文本，可逐层编辑），由 PowerPoint 导出 PNG；
+修改后在 PowerPoint 里重新导出同名 PNG 即可，设计令牌见 `UI设计规格.md`。
 
-## 相关仓库
+## 所在仓库
 
-- 实验一（需求分析）：https://github.com/BlankBlacking/se-lab1-secondhand
+本实验与实验一共用同一个仓库：https://github.com/BlankBlacking/se-lab1-secondhand
+
+- `requirements.md`、`chat.txt` —— 实验一：35 条需求与访谈/审查记录
+- `lab2/` —— 实验二：本目录内容（UML 图、界面设计稿、报告）
