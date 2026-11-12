@@ -27,12 +27,11 @@
 
 ```
 .
-├── 实验报告.pdf      报告（21 页；正文待填处用灰色〔待写〕标出）
+├── 实验报告.pdf      报告（24 页；正文待填处用灰色〔待写〕标出）
 ├── 实验报告.tex      报告 LaTeX 源（xelatex 编译）
 ├── UML/             PlantUML 源码（.puml）与渲染结果（.png），共 11 张图
-├── UI界面/           界面设计稿 13 屏（由 PowerPoint 绘制并导出，用户端 H5 10 屏 + 管理端 3 屏）
-├── 界面设计稿-用户端.pptx / -管理端.pptx   PowerPoint 可编辑源文件
-
+├── UI界面/           提交用界面稿 13 屏（HTML/CSS 原型渲染导出）
+├── 界面设计稿-PowerPoint版/   同一套界面的 PowerPoint 版导出（13 屏）
 ├── UI设计规格.md     设计令牌、组件规格与逐屏说明（重绘设计稿时对照）
 ├── docs/            实验二执行计划
 └── tools/           puml2png.mjs：.puml → .png 渲染脚本
@@ -63,8 +62,8 @@ node tools/puml2png.mjs UML
 xelatex 实验报告.tex && xelatex 实验报告.tex
 ```
 
-界面稿全部用 Microsoft PowerPoint 绘制（原生形状 + 文本，可逐层编辑），由 PowerPoint 导出 PNG；
-修改后在 PowerPoint 里重新导出同名 PNG 即可，设计令牌见 `UI设计规格.md`。
+界面稿为 HTML/CSS 原型，在 Chrome 里按 780×1688 / 1440×900 渲染导出；
+另有一套 PowerPoint 版（原生形状、可编辑）放在 `界面设计稿-PowerPoint版/`，两套版式一致，二选一提交即可。设计令牌见 `UI设计规格.md`。
 
 ## 所在仓库
 
